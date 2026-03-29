@@ -1,0 +1,8 @@
+{
+  "name": "Remix: EcoSpeak Junior",
+  "description": "An interactive English learning app for kids using Claymorphism and AI, exploring Forest, Volcano, Ocean, and Jungle ecosystems.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
