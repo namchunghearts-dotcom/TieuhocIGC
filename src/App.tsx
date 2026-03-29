@@ -65,7 +65,7 @@ import { identifyEcoObject } from './services/geminiService';
 // --- Explorer Mode (Real AI Detection) ---
 function ExplorerMode() {
   const [scanning, setScanning] = useState(false);
-  const [detected, setDetected] = useState<{ zone: EcoZone, object: string } | null>(null);
+  const [detected, setDetected] = useState<{ zone: EcoZone, object: string, image?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -100,7 +100,13 @@ function ExplorerMode() {
       if (result.zoneId !== 'none') {
         const zone = ECO_ZONES.find(z => z.id === result.zoneId);
         if (zone) {
-          setDetected({ zone, object: result.detectedObject });
+          // Try to find a matching vocab image
+          const vocabMatch = zone.vocab.find(v => v.word.toLowerCase() === result.detectedObject.toLowerCase());
+          setDetected({ 
+            zone, 
+            object: result.detectedObject,
+            image: vocabMatch?.image || zone.vocab[0].image // Fallback to first vocab image of zone
+          });
           playSound(zone.sound);
         } else {
           setError("Không nhận diện được vùng sinh thái.");
@@ -151,15 +157,26 @@ function ExplorerMode() {
               exit={{ scale: 0, opacity: 0 }}
               className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 p-6 text-center"
             >
-              <motion.span 
-                animate={{ y: [0, -20, 0], scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-9xl mb-4 drop-shadow-2xl"
-              >
-                {detected.zone.icon}
-              </motion.span>
-              <h3 className="text-3xl font-black text-blue-600 mb-2">PHÁT HIỆN: {detected.object}!</h3>
-              <p className="text-gray-600 mb-6">Hiệu ứng {detected.zone.name} đang hiển thị trên mô hình của bạn!</p>
+              <div className="relative mb-4">
+                <motion.span 
+                  animate={{ y: [0, -20, 0], scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-8xl block drop-shadow-2xl z-10 relative"
+                >
+                  {detected.zone.icon}
+                </motion.span>
+                {detected.image && (
+                  <motion.img 
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    src={detected.image}
+                    className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border-4 border-white shadow-xl opacity-60 aspect-square"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+              </div>
+              <h3 className="text-3xl font-black text-blue-600 mb-2 uppercase">PHÁT HIỆN: {detected.object}!</h3>
+              <p className="text-gray-600 mb-6 font-bold">Hệ sinh thái: {detected.zone.name}</p>
               <button onClick={() => setDetected(null)} className="clay-button bg-blue-500 text-white w-full">Quét tiếp</button>
             </motion.div>
           )}
@@ -193,7 +210,7 @@ function ExplorerMode() {
 function VocabularyWheel({ onPractice }: { onPractice: (word: string) => void }) {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [result, setResult] = useState<{word: string, zone: string} | null>(null);
+  const [result, setResult] = useState<{word: string, translation: string, image: string, zone: string} | null>(null);
 
   const spin = () => {
     if (spinning) return;
@@ -220,7 +237,12 @@ function VocabularyWheel({ onPractice }: { onPractice: (word: string) => void })
 
       const zone = ECO_ZONES[zoneIndex];
       const randomWord = zone.vocab[Math.floor(Math.random() * zone.vocab.length)];
-      setResult({ word: randomWord.word, zone: zone.name });
+      setResult({ 
+        word: randomWord.word, 
+        translation: randomWord.translation,
+        image: randomWord.image,
+        zone: zone.name 
+      });
       setSpinning(false);
       playSound('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'); // Win sound
     }, 3000);
@@ -260,11 +282,22 @@ function VocabularyWheel({ onPractice }: { onPractice: (word: string) => void })
           <motion.div 
             initial={{ scale: 0, y: 20 }} 
             animate={{ scale: 1, y: 0 }} 
-            className="text-center bg-blue-50 p-6 rounded-3xl w-full border-2 border-blue-100"
+            className="text-center bg-blue-50 p-6 rounded-3xl w-full border-2 border-blue-100 flex flex-col items-center gap-4"
           >
-            <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1">{result.zone}</p>
-            <h3 className="text-4xl font-black text-blue-600 mb-4">{result.word}</h3>
-            <button onClick={() => onPractice(result.word)} className="clay-button py-3 px-8 bg-green-500 text-white flex items-center gap-2 mx-auto">
+            <div className="flex items-center gap-4 w-full">
+              <img 
+                src={result.image} 
+                alt={result.word} 
+                className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover shadow-md border-4 border-white aspect-square flex-shrink-0"
+                referrerPolicy="no-referrer"
+              />
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-1 truncate">{result.zone}</p>
+                <h3 className="text-3xl md:text-4xl font-black text-blue-600 leading-tight truncate">{result.word}</h3>
+                <p className="text-blue-400 font-bold truncate">{result.translation}</p>
+              </div>
+            </div>
+            <button onClick={() => onPractice(result.word)} className="clay-button py-3 px-8 bg-green-500 text-white flex items-center gap-2 w-full justify-center">
               <Mic2 size={20} /> Luyện phát âm ngay
             </button>
           </motion.div>
@@ -284,7 +317,7 @@ function VocabularyWheel({ onPractice }: { onPractice: (word: string) => void })
 
 // --- Find the Treasure Game (With Timer & Levels) ---
 function TreasureGame() {
-  const [target, setTarget] = useState<{word: string, zoneId: string} | null>(null);
+  const [target, setTarget] = useState<{word: string, translation: string, image: string, zoneId: string} | null>(null);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(10);
   const [gameActive, setGameActive] = useState(false);
@@ -294,7 +327,12 @@ function TreasureGame() {
   const nextRound = () => {
     const randomZone = ECO_ZONES[Math.floor(Math.random() * ECO_ZONES.length)];
     const randomWord = randomZone.vocab[Math.floor(Math.random() * randomZone.vocab.length)];
-    setTarget({ word: randomWord.word, zoneId: randomZone.id });
+    setTarget({ 
+      word: randomWord.word, 
+      translation: randomWord.translation,
+      image: randomWord.image,
+      zoneId: randomZone.id 
+    });
     setMessage(`Hãy tìm: ${randomWord.word}!`);
     setTimeLeft(10);
   };
@@ -347,7 +385,7 @@ function TreasureGame() {
         </div>
       </div>
 
-      <div className="clay-inset p-6 text-center min-h-[100px] flex items-center justify-center">
+      <div className="clay-inset p-6 text-center min-h-[150px] flex flex-col items-center justify-center gap-4">
         {!gameActive && score > 0 ? (
           <div className="space-y-4">
             <p className="text-2xl font-black text-gray-800">KẾT QUẢ: {score} ĐIỂM!</p>
@@ -356,7 +394,17 @@ function TreasureGame() {
         ) : !gameActive ? (
           <button onClick={startGame} className="clay-button bg-green-500 text-white text-xl px-12">BẮT ĐẦU CHƠI</button>
         ) : (
-          <p className="text-2xl font-black text-blue-600 uppercase tracking-widest">{message}</p>
+          <>
+            <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden shadow-lg border-4 border-white aspect-square">
+              <img 
+                src={target?.image} 
+                alt={target?.word} 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <p className="text-2xl font-black text-blue-600 uppercase tracking-widest">{message}</p>
+          </>
         )}
       </div>
 
@@ -415,18 +463,20 @@ function ZoneView({ onPractice }: { onPractice: (word: string) => void }) {
             key={item.word} 
             className="clay-card p-4 flex gap-4 items-center"
           >
-            <img 
-              src={item.image} 
-              alt={item.word} 
-              className="w-24 h-24 rounded-2xl object-cover shadow-inner"
-              referrerPolicy="no-referrer"
-            />
-            <div className="flex-1">
-              <h4 className="text-xl font-bold text-gray-800">{item.word}</h4>
-              <p className="text-blue-500 font-medium text-sm mb-2">{item.translation}</p>
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 aspect-square">
+              <img 
+                src={item.image} 
+                alt={item.word} 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xl font-bold text-gray-800 truncate">{item.word}</h4>
+              <p className="text-blue-500 font-medium text-sm mb-2 truncate">{item.translation}</p>
               <button 
                 onClick={() => onPractice(item.word)}
-                className="text-xs font-black uppercase tracking-widest text-white bg-green-500 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-green-600 transition-colors"
+                className="text-xs font-black uppercase tracking-widest text-white bg-green-500 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-green-600 transition-colors w-fit"
               >
                 <Mic2 size={12} /> Voice Master
               </button>
@@ -473,15 +523,17 @@ function DictionaryView({ onPractice }: { onPractice: (word: string) => void }) 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           key={item.word} 
-          className="clay-card p-6 flex flex-col md:flex-row gap-6"
+          className="clay-card p-6 flex flex-col md:flex-row gap-6 items-center md:items-start"
         >
-          <img 
-            src={item.image} 
-            alt={item.word} 
-            className="w-full md:w-48 h-32 rounded-2xl object-cover shadow-md"
-            referrerPolicy="no-referrer"
-          />
-          <div className="flex-1">
+          <div className="w-full md:w-48 h-48 md:h-32 rounded-2xl overflow-hidden shadow-md aspect-video md:aspect-auto">
+            <img 
+              src={item.image} 
+              alt={item.word} 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <div className="flex-1 w-full">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-2xl font-black text-blue-600">{item.word}</h3>
               <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-bold text-gray-500">{item.translation}</span>
@@ -489,7 +541,7 @@ function DictionaryView({ onPractice }: { onPractice: (word: string) => void }) 
             <p className="text-gray-600 italic mb-4">"{item.example}"</p>
             <button 
               onClick={() => onPractice(item.word)}
-              className="clay-button py-2 text-sm flex items-center gap-2"
+              className="clay-button py-2 text-sm flex items-center gap-2 w-full md:w-fit justify-center"
             >
               <Mic2 size={16} /> Luyện phát âm
             </button>
