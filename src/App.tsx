@@ -1327,7 +1327,7 @@ function MainContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [speakingVocab, setSpeakingVocab] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<'map' | 'explorer' | 'wheel' | 'game' | 'sentences' | 'motion'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'explorer' | 'wheel' | 'game' | 'sentences' | 'motion' | 'dictionary'>('dictionary');
 
   return (
     <div className="max-w-5xl mx-auto min-h-screen flex flex-col p-4 md:p-8 pb-24">
@@ -1365,6 +1365,7 @@ function MainContent() {
                   { id: 'wheel', icon: <RefreshCw size={18} />, label: 'Vòng quay' },
                   { id: 'sentences', icon: <BookOpen size={18} />, label: 'Ghép câu' },
                   { id: 'motion', icon: <Zap size={18} />, label: 'Cử động' },
+                  { id: 'dictionary', icon: <Book size={18} />, label: 'Từ điển' },
                   { id: 'game', icon: <Trophy size={18} />, label: 'Báu vật' },
                 ].map(tab => (
                   <button
@@ -1390,6 +1391,24 @@ function MainContent() {
                   {activeTab === 'wheel' && <VocabularyWheel onPractice={setSpeakingVocab} />}
                   {activeTab === 'sentences' && <SentenceBuilderGame />}
                   {activeTab === 'motion' && <MotionChallengeGame />}
+                  {activeTab === 'dictionary' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {ECO_ZONES.map(zone => (
+                        <button 
+                          key={zone.id}
+                          onClick={() => navigate(`/${zone.id}/dictionary`)}
+                          className="clay-card p-6 flex items-center gap-4 hover:shadow-xl transition-all group"
+                        >
+                          <span className="text-5xl group-hover:scale-110 transition-transform">{zone.icon}</span>
+                          <div className="text-left">
+                            <h3 className="text-xl font-black text-gray-800">{zone.name}</h3>
+                            <p className="text-sm text-gray-500 font-medium">Xem {zone.vocab.length} từ vựng AI</p>
+                          </div>
+                          <ChevronRight className="ml-auto text-gray-300 group-hover:text-blue-500 transition-colors" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {activeTab === 'game' && <TreasureGame />}
                 </motion.div>
               </AnimatePresence>
