@@ -687,10 +687,10 @@ function MotionChallengeGame() {
 
   useEffect(() => {
     if (gameActive) {
-      detectionIntervalRef.current = setInterval(detectMotion, 100);
+      detectionIntervalRef.current = setInterval(detectMotion, 50);
     } else if (isCameraReady) {
       // Keep detection running even when not active to show intensity meters
-      detectionIntervalRef.current = setInterval(detectMotion, 100);
+      detectionIntervalRef.current = setInterval(detectMotion, 50);
     }
     return () => {
       if (detectionIntervalRef.current) clearInterval(detectionIntervalRef.current);
@@ -723,7 +723,7 @@ function MotionChallengeGame() {
             }
             return 100;
           }
-          return prev + 10;
+          return prev + 25;
         });
       }, 50);
       return () => clearInterval(timer);
