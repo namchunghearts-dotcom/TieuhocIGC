@@ -9,7 +9,14 @@ export async function evaluatePronunciation(word: string, audioBase64: string) {
       contents: [
         {
           parts: [
-            { text: `Evaluate the pronunciation of the word "${word}" in this audio. Pay special attention to the ending sounds (like /s/, /t/, /d/). Provide a score from 1 to 5 stars and a short encouraging feedback in English for a primary school student. Mention if the ending sound was clear.` },
+            { text: `Evaluate the pronunciation of the word "${word}" in this audio for a primary school student. 
+            Provide a detailed breakdown in JSON format:
+            - accuracy: score 1-100 (how close to the native sound)
+            - fluency: score 1-100 (how smooth the delivery was)
+            - pronunciation: score 1-100 (clarity of specific phonemes)
+            - overallScore: 1-5 stars
+            - feedback: short, encouraging feedback in English.
+            - tips: one specific tip to improve (e.g., "Focus on the ending /s/ sound").` },
             { inlineData: { mimeType: "audio/wav", data: audioBase64 } }
           ]
         }
@@ -19,10 +26,14 @@ export async function evaluatePronunciation(word: string, audioBase64: string) {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            score: { type: Type.NUMBER },
-            feedback: { type: Type.STRING }
+            accuracy: { type: Type.NUMBER },
+            fluency: { type: Type.NUMBER },
+            pronunciation: { type: Type.NUMBER },
+            overallScore: { type: Type.NUMBER },
+            feedback: { type: Type.STRING },
+            tips: { type: Type.STRING }
           },
-          required: ["score", "feedback"]
+          required: ["accuracy", "fluency", "pronunciation", "overallScore", "feedback", "tips"]
         }
       }
     });
@@ -30,7 +41,14 @@ export async function evaluatePronunciation(word: string, audioBase64: string) {
     return JSON.parse(response.text);
   } catch (error) {
     console.error("Error evaluating pronunciation:", error);
-    return { score: 3, feedback: "Keep trying! You are doing great!" };
+    return { 
+      accuracy: 70, 
+      fluency: 75, 
+      pronunciation: 65, 
+      overallScore: 3, 
+      feedback: "Keep trying! You are doing great!",
+      tips: "Try to speak a bit louder and clearer."
+    };
   }
 }
 
